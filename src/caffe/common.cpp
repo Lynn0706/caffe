@@ -1,4 +1,4 @@
-#include <boost/thread.hpp>
+﻿#include <boost/thread.hpp>
 #include <glog/logging.h>
 #include <cmath>
 #include <cstdio>
@@ -44,7 +44,7 @@ void GlobalInit(int* pargc, char*** pargv) {
   // Google flags.
   ::gflags::ParseCommandLineFlags(pargc, pargv, true);
   // Google logging.
-  ::google::InitGoogleLogging(*(pargv)[0]);
+  ::google::InitGoogleLogging(*(pargv)[0]);          //可执行脚本
   // Provide a backtrace on segfault.
   ::google::InstallFailureSignalHandler();
 }

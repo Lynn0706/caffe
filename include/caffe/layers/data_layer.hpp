@@ -15,7 +15,8 @@
 namespace caffe {
 
 template <typename Dtype>
-class DataLayer : public BasePrefetchingDataLayer<Dtype> {
+class DataLayer : public BasePrefetchingDataLayer<Dtype> 
+{
  public:
   explicit DataLayer(const LayerParameter& param);
   virtual ~DataLayer();

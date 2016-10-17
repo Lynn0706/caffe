@@ -153,9 +153,11 @@ template <> void Blob<unsigned int>::Update() { NOT_IMPLEMENTED; }
 template <> void Blob<int>::Update() { NOT_IMPLEMENTED; }
 
 template <typename Dtype>
-void Blob<Dtype>::Update() {
+void Blob<Dtype>::Update()
+{
   // We will perform update based on where the data is located.
-  switch (data_->head()) {
+  switch (data_->head()) 
+  {
   case SyncedMemory::HEAD_AT_CPU:
     // perform computation on CPU
     caffe_axpy<Dtype>(count_, Dtype(-1),

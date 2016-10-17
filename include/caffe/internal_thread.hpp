@@ -1,4 +1,4 @@
-#ifndef CAFFE_INTERNAL_THREAD_HPP_
+﻿#ifndef CAFFE_INTERNAL_THREAD_HPP_
 #define CAFFE_INTERNAL_THREAD_HPP_
 
 #include "caffe/common.hpp"
@@ -16,6 +16,8 @@ namespace caffe {
  * The child class will acquire the ability to run a single thread,
  * by reimplementing the virtual function InternalThreadEntry.
  */
+//此基类封装了boost：thread，其子类可通过重写虚函数InternalThreadEntry将具有运行单个线程的能力，
+//这是因为在封装好的start thread函数中调用了InteralThreadEntry了。
 class InternalThread {
  public:
   InternalThread() : thread_() {}
@@ -26,6 +28,7 @@ class InternalThread {
    * thread values, e.g. device id, solver index etc. The random seed
    * is initialized using caffe_rng_rand.
    */
+  //改start thread的函数主要是使用caffe中的设备id， 求解器的index参数初始化thread线程
   void StartInternalThread();
 
   /** Will not return until the internal thread has exited. */

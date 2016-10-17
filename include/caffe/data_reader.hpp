@@ -1,4 +1,4 @@
-#ifndef CAFFE_DATA_READER_HPP_
+﻿#ifndef CAFFE_DATA_READER_HPP_
 #define CAFFE_DATA_READER_HPP_
 
 #include <map>
@@ -20,7 +20,17 @@ namespace caffe {
  * subset of the database. Data is distributed to solvers in a round-robin
  * way to keep parallel training deterministic.
  */
-class DataReader {
+
+//对数据库的读写涉及到多线程编程时，需要考虑互斥问题。
+//为提高了读取效率，这里将读取资源source到queue中供data layer中读取。
+//一个资源只允许单独一个读取线程操作。即使是在多卡gpu训练时，多个solver同时并行运行的同时也必须这样
+//上述这种策略保证了数据库在访问时是顺序读取的，而且每个solver访问的是完全不同的数据库的子集
+//各个solver使用了一个叫round-robin的方式去访问数据库，这使得在并行化训练时，数据是以一种确定性的
+//方式分发给solvers的
+
+/* 在DataReader中，reader读取queue中的数据库记录把内容存放在body中*/
+class DataReader 
+{
  public:
   explicit DataReader(const LayerParameter& param);
   ~DataReader();
@@ -36,26 +46,29 @@ class DataReader {
   // Queue pairs are shared between a body and its readers
   class QueuePair {
    public:
-    explicit QueuePair(int size);
+    explicit QueuePair(int size);  //size = prefetch * batch
     ~QueuePair();
 
-    BlockingQueue<Datum*> free_;
-    BlockingQueue<Datum*> full_;
+    BlockingQueue<Datum*> free_;  //队列中释放出来的Datum的集合，该数据结构支持push,pop,peek等操作且是个支持sync的mutex
+    BlockingQueue<Datum*> full_;  //队列中full的Datum的集合
+	//根据以上可以猜测，这类free_ full_为一个pair 其用途？？？
 
   DISABLE_COPY_AND_ASSIGN(QueuePair);
   };
 
   // A single body is created per source
-  class Body : public InternalThread {
+  //一个资源创建一个单独的single body，根据之前的描述，这必须是一个single thread读取的
+  class Body : public InternalThread 
+  {
    public:
     explicit Body(const LayerParameter& param);
     virtual ~Body();
 
    protected:
-    void InternalThreadEntry();
-    void read_one(db::Cursor* cursor, QueuePair* qp);
+    void InternalThreadEntry();								//起读数据的线程的入口
+    void read_one(db::Cursor* cursor, QueuePair* qp);       //读取数据
 
-    const LayerParameter param_;
+    const LayerParameter param_;							
     BlockingQueue<shared_ptr<QueuePair> > new_queue_pairs_;
 
     friend class DataReader;

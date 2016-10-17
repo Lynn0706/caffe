@@ -1,4 +1,4 @@
-#ifndef CAFFE_DATA_TRANSFORMER_HPP
+﻿#ifndef CAFFE_DATA_TRANSFORMER_HPP
 #define CAFFE_DATA_TRANSFORMER_HPP
 
 #include <vector>
@@ -13,6 +13,8 @@ namespace caffe {
  * @brief Applies common transformations to the input data, such as
  * scaling, mirroring, substracting the image mean...
  */
+
+	//必要的裁剪，rng或者resize，做一些预处理
 template <typename Dtype>
 class DataTransformer {
  public:
@@ -138,15 +140,15 @@ class DataTransformer {
    */
   virtual int Rand(int n);
 
-  void Transform(const Datum& datum, Dtype* transformed_data);
+  void Transform(const Datum& datum, Dtype* transformed_data);		//裁剪和镜像的变换
   // Tranformation parameters
-  TransformationParameter param_;
+  TransformationParameter param_;		//转换的参数
 
 
-  shared_ptr<Caffe::RNG> rng_;
-  Phase phase_;
-  Blob<Dtype> data_mean_;
-  vector<Dtype> mean_values_;
+  shared_ptr<Caffe::RNG> rng_;			// random number generator
+  Phase phase_;							//train还是test
+  Blob<Dtype> data_mean_;				//当前blob的数据均值
+  vector<Dtype> mean_values_;			//这个是预计算得到的均值
 };
 
 }  // namespace caffe

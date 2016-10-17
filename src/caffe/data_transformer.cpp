@@ -1,4 +1,4 @@
-#ifdef USE_OPENCV
+﻿#ifdef USE_OPENCV
 #include <opencv2/core/core.hpp>
 #endif  // USE_OPENCV
 
@@ -41,6 +41,7 @@ DataTransformer<Dtype>::DataTransformer(const TransformationParameter& param,
 template<typename Dtype>
 void DataTransformer<Dtype>::Transform(const Datum& datum,
                                        Dtype* transformed_data) {
+  //获取一些入参及其他参数
   const string& data = datum.data();
   const int datum_channels = datum.channels();
   const int datum_height = datum.height();
@@ -57,6 +58,7 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
   CHECK_GE(datum_height, crop_size);
   CHECK_GE(datum_width, crop_size);
 
+  //获取图像均值，从均值文件或者直接是给定的value
   Dtype* mean = NULL;
   if (has_mean_file) {
     CHECK_EQ(datum_channels, data_mean_.channels());
@@ -74,7 +76,7 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
       }
     }
   }
-
+  //随机裁剪，只有在训练阶段才做裁剪工作，裁剪工作的裁剪倾向于留下右下方的数据
   int height = datum_height;
   int width = datum_width;
 
@@ -87,7 +89,8 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
     if (phase_ == TRAIN) {
       h_off = Rand(datum_height - crop_size + 1);
       w_off = Rand(datum_width - crop_size + 1);
-    } else {
+    } 
+	else {
       h_off = (datum_height - crop_size) / 2;
       w_off = (datum_width - crop_size) / 2;
     }
@@ -98,16 +101,21 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
   for (int c = 0; c < datum_channels; ++c) {
     for (int h = 0; h < height; ++h) {
       for (int w = 0; w < width; ++w) {
-        data_index = (c * datum_height + h_off + h) * datum_width + w_off + w;
-        if (do_mirror) {
-          top_index = (c * height + h) * width + (width - 1 - w);
-        } else {
+        data_index = (c * datum_height + h_off + h) * datum_width + w_off + w;		//计算当前data的index，该计算过程可将channe展开拼接成大图推导出来相应的index
+        if (do_mirror) 
+		{
+          top_index = (c * height + h) * width + (width - 1 - w);					//水平方向进行数据的mirror
+        } 
+		else {
           top_index = (c * height + h) * width + w;
         }
-        if (has_uint8) {
+        if (has_uint8) 
+		{
           datum_element =
             static_cast<Dtype>(static_cast<uint8_t>(data[data_index]));
-        } else {
+        } 
+		else 
+		{
           datum_element = datum.float_data(data_index);
         }
         if (has_mean_file) {
@@ -336,10 +344,13 @@ void DataTransformer<Dtype>::Transform(Blob<Dtype>* input_blob,
 
   if (transformed_blob->count() == 0) {
     // Initialize transformed_blob with the right shape.
-    if (crop_size) {
+    if (crop_size) 
+	{
       transformed_blob->Reshape(input_num, input_channels,
                                 crop_size, crop_size);
-    } else {
+    } 
+	else 
+	{
       transformed_blob->Reshape(input_num, input_channels,
                                 input_height, input_width);
     }
@@ -392,7 +403,8 @@ void DataTransformer<Dtype>::Transform(Blob<Dtype>* input_blob,
     }
   }
 
-  if (has_mean_values) {
+  if (has_mean_values) 
+  {
     CHECK(mean_values_.size() == 1 || mean_values_.size() == input_channels) <<
      "Specify either 1 mean_value or as many as channels: " << input_channels;
     if (mean_values_.size() == 1) {

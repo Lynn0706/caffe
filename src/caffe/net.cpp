@@ -73,17 +73,19 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
   param_id_vecs_.resize(param.layer_size());
   top_id_vecs_.resize(param.layer_size());
   bottom_need_backward_.resize(param.layer_size());
-  for (int layer_id = 0; layer_id < param.layer_size(); ++layer_id) {
+
+  for (int layer_id = 0; layer_id < param.layer_size(); ++layer_id) 
+  {
     // For non-root solvers, whether this layer is shared from root_net_.
-    bool share_from_root = !Caffe::root_solver()
-        && root_net_->layers_[layer_id]->ShareInParallel();
+    bool share_from_root = !Caffe::root_solver() && root_net_->layers_[layer_id]->ShareInParallel();
     // Inherit phase from net if unset.
     if (!param.layer(layer_id).has_phase()) {
       param.mutable_layer(layer_id)->set_phase(phase_);
     }
     // Setup layer.
     const LayerParameter& layer_param = param.layer(layer_id);
-    if (layer_param.propagate_down_size() > 0) {
+    if (layer_param.propagate_down_size() > 0) 
+	{
       CHECK_EQ(layer_param.propagate_down_size(),
           layer_param.bottom_size())
           << "propagate_down param must be specified "
@@ -144,7 +146,8 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
             << this_top[top_id]->shape_string() <<  ") for shared layer "
             << layer_param.name();
       }
-    } else {
+    } 
+	else {
       layers_[layer_id]->SetUp(bottom_vecs_[layer_id], top_vecs_[layer_id]);
     }
     LOG_IF(INFO, Caffe::root_solver())

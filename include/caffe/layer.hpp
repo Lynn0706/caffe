@@ -1,4 +1,4 @@
-#ifndef CAFFE_LAYER_H_
+﻿#ifndef CAFFE_LAYER_H_
 #define CAFFE_LAYER_H_
 
 #include <algorithm>
@@ -29,6 +29,11 @@ namespace caffe {
  * gradients with respect to their input Blob%s, given the error gradients with
  * their output Blob%s.
  */
+
+	//blob始终数据的封装形式，是个tensor，可以用作存储模型中的layer习得的参数，比如weight和bias
+	//也可以作为data，作为layer的输入输出
+	//也可以作为在求解计算的中的数据结构
+	//在阅读layer的时候top和bottom都是blob，表示输入输出，其习得的参数blobs_也是blob.
 template <typename Dtype>
 class Layer {
  public:
@@ -37,6 +42,7 @@ class Layer {
    * to SetUp(), where the dimensions of the bottom blobs are provided to the
    * layer.
    */
+	 //需要显式地对layer层进行构造，对各个blob从proto中拷贝数据，对数据的shape不敏感，数据的reshape的工作在setup阶段完成
   explicit Layer(const LayerParameter& param)
     : layer_param_(param), is_shared_(false) {
       // Set phase and copy blobs (if there are any).
@@ -64,13 +70,13 @@ class Layer {
    * Sets up the loss weight multiplier blobs for any non-zero loss weights.
    * This method may not be overridden.
    */
-  void SetUp(const vector<Blob<Dtype>*>& bottom,
-      const vector<Blob<Dtype>*>& top) {
-    InitMutex();
-    CheckBlobCounts(bottom, top);
-    LayerSetUp(bottom, top);
-    Reshape(bottom, top);
-    SetLossWeights(top);
+  void SetUp(const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top)
+  {
+    InitMutex();						//share的话（即多线程计算时）需要做互斥量
+    CheckBlobCounts(bottom, top);		//考虑到concat的话，对bottom和top的参数的blob是有要求的，需要检查是否符合要求
+    LayerSetUp(bottom, top);			//虚函数，提供通用方式，在具体的layer可根据需要重写具体定义
+    Reshape(bottom, top);				//完成bottom到top数据的shape的转换，纯虚函数，只提供接口，需要在具体的layer中必须做好定义
+    SetLossWeights(top);				//计算改成的loss值
   }
 
   /**
@@ -89,6 +95,7 @@ class Layer {
    * <code>Reshape</code>, which will be called before the forward pass to
    * adjust the top blob sizes.
    */
+  //该接口方法什么都没做，只是允许子类可以什么略去此方法
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {}
 
@@ -98,18 +105,21 @@ class Layer {
    *        not be shared. data layers should be shared to ensure each worker
    *        solver access data sequentially during data parallelism.
    */
+  //layer层默认不允许parallelism，但可在具体的layer做具体的规定
   virtual inline bool ShareInParallel() const { return false; }
 
   /** @brief Return whether this layer is actually shared by other nets.
    *         If ShareInParallel() is true and using more than one GPU and the
    *         net has TRAIN phase, then this function is expected return true.
    */
+  //查询是否允许多线程计算
   inline bool IsShared() const { return is_shared_; }
 
   /** @brief Set whether this layer is actually shared by other nets
    *         If ShareInParallel() is true and using more than one GPU and the
    *         net has TRAIN phase, then is_shared should be set true.
    */
+  //设置是否允许多线程计算
   inline void SetShared(bool is_shared) {
     CHECK(ShareInParallel() || !is_shared)
         << type() << "Layer does not support sharing.";
@@ -128,6 +138,7 @@ class Layer {
    * and making any other necessary adjustments so that the layer can
    * accommodate the bottom blobs.
    */
+  //完成bottom到top数据的shape的转换，纯虚函数，只提供接口，需要在具体的layer中必须做好定义
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) = 0;
 
@@ -148,6 +159,7 @@ class Layer {
    *
    * Your layer should implement Forward_cpu and (optionally) Forward_gpu.
    */
+  //提供前向计算接口，包括计算loss值，具体的计算在纯虚函数Forward_cpu中根据具体layer进行计算
   inline Dtype Forward(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 
@@ -172,6 +184,7 @@ class Layer {
    *
    * Your layer should implement Backward_cpu and (optionally) Backward_gpu.
    */
+  //提供反向计算接口，具体的计算在纯虚函数Backward_cpu中根据具体layer进行计算
   inline void Backward(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down,
       const vector<Blob<Dtype>*>& bottom);
@@ -179,6 +192,7 @@ class Layer {
   /**
    * @brief Returns the vector of learnable parameter blobs.
    */
+  //获取layer的计算参数
   vector<shared_ptr<Blob<Dtype> > >& blobs() {
     return blobs_;
   }
@@ -186,16 +200,21 @@ class Layer {
   /**
    * @brief Returns the layer parameter.
    */
+  //获取layer的普通参数，包括名字，前后层等等信息，不包括weight这样的计算参数，具体定义可以参考protobuf编译出来的proto的头文件
   const LayerParameter& layer_param() const { return layer_param_; }
 
   /**
    * @brief Writes the layer parameter to a protocol buffer
    */
+  //向protobuf 中写入layer的普通参数
   virtual void ToProto(LayerParameter* param, bool write_diff = false);
 
   /**
    * @brief Returns the scalar loss associated with a top blob at a given index.
    */
+
+  /* confused wml11633548 */
+  //获取指定blob的loss值
   inline Dtype loss(const int top_index) const {
     return (loss_.size() > top_index) ? loss_[top_index] : Dtype(0);
   }
@@ -203,6 +222,7 @@ class Layer {
   /**
    * @brief Sets the loss associated with a top blob at a given index.
    */
+  //设置指定的blob的loss值？？？为啥可以设置
   inline void set_loss(const int top_index, const Dtype value) {
     if (loss_.size() <= top_index) {
       loss_.resize(top_index + 1, Dtype(0));
@@ -213,8 +233,11 @@ class Layer {
   /**
    * @brief Returns the layer type.
    */
+
+  //获取type
   virtual inline const char* type() const { return ""; }
 
+  //获取blob的个数
   /**
    * @brief Returns the exact number of bottom blobs required by the layer,
    *        or -1 if no exact number is required.
@@ -411,12 +434,14 @@ class Layer {
    * Called by SetUp to initialize the weights associated with any top blobs in
    * the loss function. Store non-zero loss weights in the diff blob.
    */
-  inline void SetLossWeights(const vector<Blob<Dtype>*>& top) {
+  inline void SetLossWeights(const vector<Blob<Dtype>*>& top) 
+  {
     const int num_loss_weights = layer_param_.loss_weight_size();
     if (num_loss_weights) {
       CHECK_EQ(top.size(), num_loss_weights) << "loss_weight must be "
           "unspecified or specified once per top blob.";
-      for (int top_id = 0; top_id < top.size(); ++top_id) {
+      for (int top_id = 0; top_id < top.size(); ++top_id) 
+	  {
         const Dtype loss_weight = layer_param_.loss_weight(top_id);
         if (loss_weight == Dtype(0)) { continue; }
         this->set_loss(top_id, loss_weight);
@@ -447,6 +472,7 @@ class Layer {
 // Forward and backward wrappers. You should implement the cpu and
 // gpu specific implementations instead, and should not change these
 // functions.
+//前向传播之后，同时计算出loss值，同样前向传播属于纯虚函数，具体实现在具体layer中实现
 template <typename Dtype>
 inline Dtype Layer<Dtype>::Forward(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
@@ -486,6 +512,7 @@ inline Dtype Layer<Dtype>::Forward(const vector<Blob<Dtype>*>& bottom,
   return loss;
 }
 
+//反向传播计算，注意这里的 Backward_cpu是纯虚函数，意味着具体的实现要在后面具体的layer中实现，这里只提供接口
 template <typename Dtype>
 inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down,
@@ -502,9 +529,12 @@ inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
   }
 }
 
+
+//blob中存取的是一个4维数据，将其维度，各个维度size信息，以及包含的具体的data序列化保存在protobuf的中去。
 // Serialize LayerParameter to protocol buffer
 template <typename Dtype>
-void Layer<Dtype>::ToProto(LayerParameter* param, bool write_diff) {
+void Layer<Dtype>::ToProto(LayerParameter* param, bool write_diff) 
+{
   param->Clear();
   param->CopyFrom(layer_param_);
   param->clear_blobs();

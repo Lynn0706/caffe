@@ -30,16 +30,20 @@ void InternalThread::StartInternalThread() {
   int solver_count = Caffe::solver_count();
   bool root_solver = Caffe::root_solver();
 
-  try {
+  try 
+  {
     thread_.reset(new boost::thread(&InternalThread::entry, this, device, mode,
           rand_seed, solver_count, root_solver));
-  } catch (std::exception& e) {
+  } 
+  catch (std::exception& e) 
+  {
     LOG(FATAL) << "Thread exception: " << e.what();
   }
 }
 
 void InternalThread::entry(int device, Caffe::Brew mode, int rand_seed,
-    int solver_count, bool root_solver) {
+    int solver_count, bool root_solver) 
+{
 #ifndef CPU_ONLY
   CUDA_CHECK(cudaSetDevice(device));
 #endif
@@ -51,13 +55,19 @@ void InternalThread::entry(int device, Caffe::Brew mode, int rand_seed,
   InternalThreadEntry();
 }
 
-void InternalThread::StopInternalThread() {
-  if (is_started()) {
+void InternalThread::StopInternalThread() 
+{
+  if (is_started()) 
+  {
     thread_->interrupt();
     try {
       thread_->join();
-    } catch (boost::thread_interrupted&) {
-    } catch (std::exception& e) {
+    } 
+	catch (boost::thread_interrupted&) 
+	{
+    } 
+	catch (std::exception& e) 
+	{
       LOG(FATAL) << "Thread exception: " << e.what();
     }
   }
