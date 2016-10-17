@@ -102,10 +102,7 @@ void Solver<Dtype>::InitTrainNet() {
   net_state.MergeFrom(param_.train_state());
   net_param.mutable_state()->CopyFrom(net_state);
   if (Caffe::root_solver()) {
-    net_.
-		
-		
-		(new Net<Dtype>(net_param));
+    net_.(new Net<Dtype>(net_param));
   } else {
     net_.reset(new Net<Dtype>(net_param, root_solver_->net_.get()));
   }
